@@ -1,4 +1,3 @@
-from crypt import methods
 from flask import Blueprint
 from elasticsearch import Elasticsearch
 import project.data.queries as queries
@@ -16,4 +15,15 @@ def index():
 
 @anomaly_bp.route('/<int:id>/', methods=['GET'])
 def chain(id):
-    return
+    anomaly_json = {'web':[]}
+    response = es.search(index='dvwa_http', body = queries.query_source_ips)
+    data = {id:response['aggregations']['by_ips']['buckets'][id] for id,_ in enumerate(response['aggregations']['by_ips']['buckets'])} 
+    response = es.search(index='dvwa_http', body=queries.query_webpages%response['aggregations']['by_ips']['buckets'][id], scroll='5m')
+    scroll_id = response['_scroll_id']
+    while True:
+        for entry in response['hits']['hits']:
+            anomaly_json['web'].append(entry['_source'])
+        if len(response['hits']['hits']) < 20:
+            break
+        response = es.scroll(scroll='5m',scroll_id=scroll_id)
+    return anomaly_json
