@@ -9,4 +9,4 @@ app.register_blueprint(anomaly_bp,url_prefix='/data/')
 
 @app.route('/')
 def root():
-    return 'hello'
+    return 'This is root Path '
