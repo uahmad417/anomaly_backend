@@ -1,5 +1,5 @@
 import configparser
-from flask import Flask
+from flask import Flask, redirect, url_for
 
 
 app = Flask(__name__)
@@ -12,4 +12,4 @@ app.register_blueprint(anomaly_bp,url_prefix='/data/')
 
 @app.route('/')
 def root():
-    return 'This is root Path'
+    return redirect(url_for('anomaly.index'))
