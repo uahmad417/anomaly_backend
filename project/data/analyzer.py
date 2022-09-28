@@ -1,3 +1,5 @@
+import sys
+from time import time
 import project.data.queries as queries
 import json
 import requests
@@ -13,7 +15,7 @@ def web_activity(id):
     global anomaly_json
     global timeline_json
     anomaly_json = {'web':[],'process':[],'file':[],'network':[]}
-    timeline_json = {}
+    timeline_json = []
 
     ip_list = source_ips()
     response = es.search(index='dvwa_http', body=queries.query_webpages%ip_list[id]['key'], scroll='5m')
@@ -27,7 +29,7 @@ def web_activity(id):
             if entry['_source']['Method'] == 'POST' and 'exec' in entry['_source']['Path']:
                 command_injection(entry['_source']['Payload'][3:-14])
         response = es.scroll(scroll='5m',scroll_id=scroll_id)
-    return anomaly_json
+    return timeline_json
 
 def command_injection(payload):
     sysmon_process_response = es.search(index='dvwa_sysmon_2',body=queries.query_command_injection%requests.utils.unquote(payload.replace('+','%20')))
@@ -35,6 +37,7 @@ def command_injection(payload):
     for entry in sysmon_process_response['hits']['hits'][0]['_source']['Event']['EventData']['Data']:
         sysmon_event.update(entry)
     anomaly_json['process'].append(sysmon_event)
+    timeline_json.append(sysmon_event)
     process_id = anomaly_json['process'][-1]['ProcessId']
     file_creation(process_id)
     network_connections(process_id)
@@ -64,6 +67,7 @@ def store_process(current_process_id):
     for entry in sysmon_process_response['hits']['hits'][0]['_source']['Event']['EventData']['Data']:
         sysmon_event.update(entry)
     anomaly_json['process'].append(sysmon_event)
+    timeline_json.append(sysmon_event)
 
 def file_creation(process_id):
     sysmon_file_response = es.search(index='dvwa_sysmon_2',body=queries.query_file_creation%process_id)
@@ -74,6 +78,7 @@ def file_creation(process_id):
             for entry in sysmon_file_response['hits']['hits'][record]['_source']['Event']['EventData']['Data']:
                 sysmon_event.update(entry)
             anomaly_json['file'].append(sysmon_event)
+            timeline_json.append(sysmon_event)
 
 def network_connections(process_id):
     sysmon_network_response = es.search(index='dvwa_sysmon_2',body=queries.query_network_connect%process_id)
@@ -84,3 +89,4 @@ def network_connections(process_id):
             for entry in sysmon_network_response['hits']['hits'][record]['_source']['Event']['EventData']['Data']:
                 sysmon_event.update(entry)
             anomaly_json['network'].append(sysmon_event)
+            timeline_json.append(sysmon_event)
