@@ -11,7 +11,10 @@ def source_ips():
 
 def web_activity(id):
     global anomaly_json
+    global timeline_json
     anomaly_json = {'web':[],'process':[],'file':[],'network':[]}
+    timeline_json = {}
+
     ip_list = source_ips()
     response = es.search(index='dvwa_http', body=queries.query_webpages%ip_list[id]['key'], scroll='5m')
     scroll_id = response['_scroll_id']
@@ -20,6 +23,7 @@ def web_activity(id):
             break
         for entry in response['hits']['hits']:
             anomaly_json['web'].append(entry['_source'])
+            timeline_json.append(entry['_source'])
             if entry['_source']['Method'] == 'POST' and 'exec' in entry['_source']['Path']:
                 command_injection(entry['_source']['Payload'][3:-14])
         response = es.scroll(scroll='5m',scroll_id=scroll_id)
