@@ -13,6 +13,6 @@ def index():
     ip_list = analyzer.source_ips()
     return ip_list
 
-@anomaly_bp.route('/<int:id>/', methods=['GET'])
-def attacker_chain(id):
-    return analyzer.web_activity(id)
+@anomaly_bp.route('/<string:ip>/', methods=['GET'])
+def attacker_chain(ip):
+    return analyzer.web_activity(ip)
