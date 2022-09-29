@@ -4,10 +4,10 @@ import project.data.queries as queries
 import json
 import requests
 
-from project.data.views import es
+from project.data.views import es, scapy_index, sysmon_index
 
 def source_ips():
-    response = es.search(index='dvwa_http', body = queries.query_source_ips)
+    response = es.search(index=scapy_index, body = queries.query_source_ips)
     #data = response['aggregations']['by_ips']['buckets']
     data = {entry['key']: entry['doc_count'] for entry in response['aggregations']['by_ips']['buckets']}
     #data = {id:response['aggregations']['by_ips']['buckets'][id] for id,_ in enumerate(response['aggregations']['by_ips']['buckets'])}
@@ -18,7 +18,7 @@ def web_activity(ip):
     global timeline_json
     anomaly_json = {'web':[],'process':[],'file':[],'network':[]}
     timeline_json = []
-    response = es.search(index='dvwa_http', body=queries.query_webpages%ip, scroll='5m')
+    response = es.search(index=scapy_index, body=queries.query_webpages%ip, scroll='5m')
     scroll_id = response['_scroll_id']
     while True:
         if len(response['hits']['hits']) == 0:
@@ -33,7 +33,7 @@ def web_activity(ip):
     return timeline_json
 
 def command_injection(payload):
-    sysmon_process_response = es.search(index='dvwa_sysmon_2',body=queries.query_command_injection%requests.utils.unquote(payload.replace('+','%20')))
+    sysmon_process_response = es.search(index=sysmon_index,body=queries.query_command_injection%requests.utils.unquote(payload.replace('+','%20')))
     sysmon_event = {}
     for entry in sysmon_process_response['hits']['hits'][0]['_source']['Event']['EventData']['Data']:
         sysmon_event.update(entry)
@@ -45,7 +45,7 @@ def command_injection(payload):
     chain(process_id)
 
 def chain(process_id):
-    sysmon_process_response = es.search(index='dvwa_sysmon_2',body=queries.query_child_pids%process_id)
+    sysmon_process_response = es.search(index=sysmon_index,body=queries.query_child_pids%process_id)
     if 'ProcessId' in json.dumps(sysmon_process_response):
         hits = sysmon_process_response['hits']['total']['value']
         child_pids = [record['_source']['Event']['EventData']['Data'][1]['ProcessId'] for record in sysmon_process_response['hits']['hits']]
@@ -54,7 +54,7 @@ def chain(process_id):
                 current_process_id = child_pids.pop(0)
                 store_process(current_process_id)
                 file_creation(current_process_id)
-                sysmon_process_response = es.search(index='dvwa_sysmon_2',body=queries.query_child_pids%current_process_id)
+                sysmon_process_response = es.search(index=sysmon_index,body=queries.query_child_pids%current_process_id)
                 if 'ProcessId' in json.dumps(sysmon_process_response):
                     hits = sysmon_process_response['hits']['total']['value']
                     child_pids = child_pids + [record['_source']['Event']['EventData']['Data'][1]['ProcessId'] for record in sysmon_process_response['hits']['hits']]
@@ -63,7 +63,7 @@ def chain(process_id):
 
 
 def store_process(current_process_id):
-    sysmon_process_response = es.search(index='dvwa_sysmon_2',body=queries.query_pid%current_process_id)
+    sysmon_process_response = es.search(index=sysmon_index,body=queries.query_pid%current_process_id)
     sysmon_event = {}
     for entry in sysmon_process_response['hits']['hits'][0]['_source']['Event']['EventData']['Data']:
         sysmon_event.update(entry)
@@ -71,7 +71,7 @@ def store_process(current_process_id):
     timeline_json.append(sysmon_event)
 
 def file_creation(process_id):
-    sysmon_file_response = es.search(index='dvwa_sysmon_2',body=queries.query_file_creation%process_id)
+    sysmon_file_response = es.search(index=sysmon_index,body=queries.query_file_creation%process_id)
     if 'ProcessId' in json.dumps(sysmon_file_response):
         hits = sysmon_file_response['hits']['total']['value']
         for record in range(hits):
@@ -82,7 +82,7 @@ def file_creation(process_id):
             timeline_json.append(sysmon_event)
 
 def network_connections(process_id):
-    sysmon_network_response = es.search(index='dvwa_sysmon_2',body=queries.query_network_connect%process_id)
+    sysmon_network_response = es.search(index=sysmon_index,body=queries.query_network_connect%process_id)
     if 'ProcessId' in json.dumps(sysmon_network_response):
         hits = sysmon_network_response['hits']['total']['value']
         for record in range(hits):

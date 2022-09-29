@@ -6,6 +6,8 @@ anomaly_bp = Blueprint('anomaly',__name__)
 
 from project import config
 es = Elasticsearch(hosts=config['ElasticServer']['host'])
+sysmon_index = config['Elasticserver']['sysmon_index']
+scapy_index = config['Elasticserver']['scapy_index']
 import project.data.analyzer as analyzer
 
 @anomaly_bp.route('/',methods=['GET'])
