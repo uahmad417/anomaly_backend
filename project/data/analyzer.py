@@ -29,6 +29,7 @@ def web_activity(ip):
             if entry['_source']['Method'] == 'POST' and 'exec' in entry['_source']['Path']:
                 command_injection(entry['_source']['Payload'][3:-14])
         response = es.scroll(scroll='5m',scroll_id=scroll_id)
+        timeline_json = sorted(timeline_json, key=lambda record:record['UtcTime'])
     return timeline_json
 
 def command_injection(payload):
