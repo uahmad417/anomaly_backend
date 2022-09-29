@@ -8,17 +8,17 @@ from project.data.views import es
 
 def source_ips():
     response = es.search(index='dvwa_http', body = queries.query_source_ips)
-    data = {id:response['aggregations']['by_ips']['buckets'][id] for id,_ in enumerate(response['aggregations']['by_ips']['buckets'])}
+    #data = response['aggregations']['by_ips']['buckets']
+    data = {entry['key']: entry['doc_count'] for entry in response['aggregations']['by_ips']['buckets']}
+    #data = {id:response['aggregations']['by_ips']['buckets'][id] for id,_ in enumerate(response['aggregations']['by_ips']['buckets'])}
     return data
 
-def web_activity(id):
+def web_activity(ip):
     global anomaly_json
     global timeline_json
     anomaly_json = {'web':[],'process':[],'file':[],'network':[]}
     timeline_json = []
-
-    ip_list = source_ips()
-    response = es.search(index='dvwa_http', body=queries.query_webpages%ip_list[id]['key'], scroll='5m')
+    response = es.search(index='dvwa_http', body=queries.query_webpages%ip, scroll='5m')
     scroll_id = response['_scroll_id']
     while True:
         if len(response['hits']['hits']) == 0:
