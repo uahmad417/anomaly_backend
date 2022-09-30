@@ -1,4 +1,4 @@
-query_source_ips = '{"aggs": {"by_ips": {"terms": {"field": "SourceIP.keyword","size": 100}}}}'
+query_source_ips = '{"query": {"bool": {"must": [{"wildcard": {"Path": {"value": "*dvwa*"}}}]}}, "aggs": {"by_ips": {"terms": {"field": "SourceIP.keyword","size": 100}}}}'
 
 query_webpages = '{"size": 20,"query": {"bool": {"must_not": [{"wildcard": {"Path": {"value": "*.js"}}},{"wildcard": {"Path": {"value": "*.png"}}},{"wildcard": {"Path": {"value": "*.ico"}}},{"wildcard": {"Path": {"value": "*.css"}}}],"must": [{"match": {"SourceIP": "%s"}}]}}}'
 
