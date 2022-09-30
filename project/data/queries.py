@@ -11,3 +11,4 @@ query_pid = '{"query": {"bool": {"must": [{"match": {"Event.EventData.Data.Proce
 query_file_creation = '{"query": {"bool": {"must": [{"match": {"Event.EventData.Data.ProcessId": "%s"}}], "filter": [{"term": {"Event.System.EventID.#text": "11"}}]}}}'
 
 query_network_connect =  '{"query": {"bool": {"must": [{"match": {"Event.EventData.Data.ProcessId": "%s"}}], "filter": [{"term": {"Event.System.EventID.#text": "3"}}]}}}'
+query_dns =  '{"query": {"bool": {"must": [{"match": {"Event.EventData.Data.ProcessId": "%s"}}], "filter": [{"term": {"Event.System.EventID.#text": "22"}}]}}}'
