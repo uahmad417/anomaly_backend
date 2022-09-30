@@ -43,6 +43,7 @@ def command_injection(payload):
     process_id = anomaly_json['process'][-1]['ProcessId']
     file_creation(process_id)
     network_connections(process_id)
+    dns_query(process_id)
     chain(process_id)
 
 def chain(process_id):
@@ -55,6 +56,7 @@ def chain(process_id):
                 current_process_id = child_pids.pop(0)
                 store_process(current_process_id)
                 file_creation(current_process_id)
+                dns_query(current_process_id)
                 sysmon_process_response = es.search(index=eval(sysmon_index),body=queries.query_child_pids%current_process_id)
                 if 'ProcessId' in json.dumps(sysmon_process_response):
                     hits = sysmon_process_response['hits']['total']['value']
@@ -89,6 +91,17 @@ def network_connections(process_id):
         for record in range(hits):
             sysmon_event = {}
             for entry in sysmon_network_response['hits']['hits'][record]['_source']['Event']['EventData']['Data']:
+                sysmon_event.update(entry)
+            anomaly_json['network'].append(sysmon_event)
+            timeline_json.append(sysmon_event)
+
+def dns_query(process_id):
+    sysmon_dns_response = es.search(index=eval(sysmon_index),body=queries.query_dns%process_id)
+    if 'ProcessId' in json.dumps(sysmon_dns_response):
+        hits = sysmon_dns_response['hits']['total']['value']
+        for record in range(hits):
+            sysmon_event = {}
+            for entry in sysmon_dns_response['hits']['hits'][record]['_source']['Event']['EventData']['Data']:
                 sysmon_event.update(entry)
             anomaly_json['network'].append(sysmon_event)
             timeline_json.append(sysmon_event)
