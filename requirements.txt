@@ -2,4 +2,3 @@ flask
 elasticsearch==7.12.1
 requests
 xmltodict
-python-evtx
